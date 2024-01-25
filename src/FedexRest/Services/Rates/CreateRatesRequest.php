@@ -31,6 +31,10 @@ class CreateRatesRequest extends AbstractRequest
     protected int $totalWeight;
     protected string $preferredCurrency = '';
     protected int $totalPackageCount;
+    protected bool $returnTransitTimes = false;
+    protected bool $servicesNeededOnRateFailure = false;
+    protected ?string $variableOptions = null;
+    protected ?string $rateSortOrder = null;
 
     /**
      * {@inheritDoc}
@@ -279,6 +283,50 @@ class CreateRatesRequest extends AbstractRequest
         return $this->totalPackageCount;
     }
 
+    public function getReturnTransitTimes(): bool
+    {
+        return $this->returnTransitTimes;
+    }
+
+    public function setReturnTransitTimes(bool $returnTransitTimes): CreateRatesRequest
+    {
+        $this->returnTransitTimes = $returnTransitTimes;
+        return $this;
+    }
+
+    public function getServicesNeededOnRateFailure(): bool
+    {
+        return $this->servicesNeededOnRateFailure;
+    }
+
+    public function setServicesNeededOnRateFailure(bool $servicesNeededOnRateFailure): CreateRatesRequest
+    {
+        $this->servicesNeededOnRateFailure = $servicesNeededOnRateFailure;
+        return $this;
+    }
+
+    public function getVariableOptions(): ?string
+    {
+        return $this->variableOptions;
+    }
+
+    public function setVariableOptions(string $variableOptions): CreateRatesRequest
+    {
+        $this->variableOptions = $variableOptions;
+        return $this;
+    }
+
+    public function getRateSortOrder(): ?string
+    {
+        return $this->rateSortOrder;
+    }
+
+    public function setRateSortOrder(string $rateSortOrder): CreateRatesRequest
+    {
+        $this->rateSortOrder = $rateSortOrder;
+        return $this;
+    }
+
     /**
      * @return array
      */
@@ -332,6 +380,27 @@ class CreateRatesRequest extends AbstractRequest
         return $data;
     }
 
+    public function getRateRequestControlParameters(): ?array
+    {
+        $data = [];
+        if ($this->returnTransitTimes !== null) {
+            $data['returnTransitTimes'] = $this->returnTransitTimes;
+        }
+
+        if ($this->servicesNeededOnRateFailure !== null) {
+            $data['servicesNeededOnRateFailure'] = $this->servicesNeededOnRateFailure;
+        }
+
+        if ($this->variableOptions !== null) {
+            $data['variableOptions'] = $this->variableOptions;
+        }
+
+        if ($this->rateSortOrder !== null) {
+            $data['rateSortOrder'] = $this->rateSortOrder;
+        }
+        return empty($data) ? null : $data;
+    }
+
     public function prepare(): array
     {
         return [
@@ -339,6 +408,7 @@ class CreateRatesRequest extends AbstractRequest
                 'value' => $this->accountNumber,
             ],
             'requestedShipment' => $this->getRequestedShipment(),
+            'rateRequestControlParameters' => $this->getRateRequestControlParameters()
         ];
     }
 
