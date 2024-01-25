@@ -9,6 +9,7 @@ use FedexRest\Exceptions\MissingAccessTokenException;
 use FedexRest\Exceptions\MissingAccountNumberException;
 use FedexRest\Exceptions\MissingLineItemException;
 use FedexRest\Services\AbstractRequest;
+use FedexRest\Services\Ship\Entity\CustomsClearanceDetail;
 use FedexRest\Services\Ship\Entity\Label;
 use FedexRest\Services\Ship\Entity\ShipmentSpecialServices;
 use FedexRest\Services\Ship\Entity\ShippingChargesPayment;
@@ -32,9 +33,8 @@ class CreateRatesRequest extends AbstractRequest
     protected string $preferredCurrency = '';
     protected int $totalPackageCount;
     protected bool $returnTransitTimes = false;
-    protected bool $servicesNeededOnRateFailure = false;
-    protected ?string $variableOptions = null;
-    protected ?string $rateSortOrder = null;
+    protected bool $documentShipment = false;
+    protected ?CustomsClearanceDetail $customsClearanceDetail = null;
 
     /**
      * {@inheritDoc}
@@ -283,7 +283,7 @@ class CreateRatesRequest extends AbstractRequest
         return $this->totalPackageCount;
     }
 
-    public function getReturnTransitTimes(): bool
+    public function isReturnTransitTimes(): bool
     {
         return $this->returnTransitTimes;
     }
@@ -294,39 +294,28 @@ class CreateRatesRequest extends AbstractRequest
         return $this;
     }
 
-    public function getServicesNeededOnRateFailure(): bool
+    public function isDocumentShipment(): bool
     {
-        return $this->servicesNeededOnRateFailure;
+        return $this->documentShipment;
     }
 
-    public function setServicesNeededOnRateFailure(bool $servicesNeededOnRateFailure): CreateRatesRequest
+    public function setDocumentShipment(bool $documentShipment): CreateRatesRequest
     {
-        $this->servicesNeededOnRateFailure = $servicesNeededOnRateFailure;
+        $this->documentShipment = $documentShipment;
         return $this;
     }
 
-    public function getVariableOptions(): ?string
+    public function getCustomsClearanceDetail(): CustomsClearanceDetail
     {
-        return $this->variableOptions;
+        return $this->customsClearanceDetail;
     }
 
-    public function setVariableOptions(string $variableOptions): CreateRatesRequest
+    public function setCustomsClearanceDetail(CustomsClearanceDetail $customsClearanceDetail): CreateRatesRequest
     {
-        $this->variableOptions = $variableOptions;
+        $this->customsClearanceDetail = $customsClearanceDetail;
         return $this;
     }
-
-    public function getRateSortOrder(): ?string
-    {
-        return $this->rateSortOrder;
-    }
-
-    public function setRateSortOrder(string $rateSortOrder): CreateRatesRequest
-    {
-        $this->rateSortOrder = $rateSortOrder;
-        return $this;
-    }
-
+    
     /**
      * @return array
      */
@@ -343,6 +332,7 @@ class CreateRatesRequest extends AbstractRequest
             'recipient' => $this->recipient->prepare(),
             'pickupType' => $this->pickupType,
             'requestedPackageLineItems' => $line_items,
+            'documentShipment' => $this->documentShipment,
         ];
 
         if (!empty($this->shipmentSpecialServices)) {
@@ -376,29 +366,12 @@ class CreateRatesRequest extends AbstractRequest
         if (!empty($this->totalPackageCount)) {
             $data['totalPackageCount'] = $this->totalPackageCount;
         }
+        
+        if (!empty($this->customsClearanceDetail)) {
+            $data['customsClearanceDetail'] = $this->customsClearanceDetail->prepare();
+        }
 
         return $data;
-    }
-
-    public function getRateRequestControlParameters(): ?array
-    {
-        $data = [];
-        if ($this->returnTransitTimes !== null) {
-            $data['returnTransitTimes'] = $this->returnTransitTimes;
-        }
-
-        if ($this->servicesNeededOnRateFailure !== null) {
-            $data['servicesNeededOnRateFailure'] = $this->servicesNeededOnRateFailure;
-        }
-
-        if ($this->variableOptions !== null) {
-            $data['variableOptions'] = $this->variableOptions;
-        }
-
-        if ($this->rateSortOrder !== null) {
-            $data['rateSortOrder'] = $this->rateSortOrder;
-        }
-        return empty($data) ? null : $data;
     }
 
     public function prepare(): array
@@ -408,7 +381,9 @@ class CreateRatesRequest extends AbstractRequest
                 'value' => $this->accountNumber,
             ],
             'requestedShipment' => $this->getRequestedShipment(),
-            'rateRequestControlParameters' => $this->getRateRequestControlParameters()
+            'rateRequestControlParameters' => [
+                'returnTransitTimes' => $this->returnTransitTimes
+            ]
         ];
     }
 
