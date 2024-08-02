@@ -10,6 +10,8 @@ class CustomsClearanceDetail
      */
     protected array $commodities;
 
+    protected ?DutiesPayment $dutiesPayment = null;
+
     public function getCommodities(): array
     {
         return $this->commodities;
@@ -32,6 +34,9 @@ class CustomsClearanceDetail
             foreach ($this->commodities as $commodity) {
                 $data['commodities'][] = $commodity->prepare();
             }
+        }
+        if (!empty($this->dutiesPayment)) {
+            $data['dutiesPayment'] = $this->dutiesPayment->prepare();
         }
         return $data;
     }
