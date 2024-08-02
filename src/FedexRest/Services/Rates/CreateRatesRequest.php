@@ -33,6 +33,10 @@ class CreateRatesRequest extends AbstractRequest
     protected string $preferredCurrency = '';
     protected int $totalPackageCount;
     protected bool $returnTransitTimes = false;
+    protected bool $servicesNeededOnRateFailure = false;
+    protected ?string $variableOptions = null;
+    protected ?string $rateSortOrder = null;
+    protected array $carrierCodes = [];
     protected bool $documentShipment = false;
     protected ?CustomsClearanceDetail $customsClearanceDetail = null;
 
@@ -283,23 +287,95 @@ class CreateRatesRequest extends AbstractRequest
         return $this->totalPackageCount;
     }
 
-    public function isReturnTransitTimes(): bool
-    {
-        return $this->returnTransitTimes;
-    }
-
-    public function setReturnTransitTimes(bool $returnTransitTimes): CreateRatesRequest
+    public function setReturnTransitTimes(bool $returnTransitTimes=true): CreateRatesRequest
     {
         $this->returnTransitTimes = $returnTransitTimes;
         return $this;
     }
 
-    public function isDocumentShipment(): bool
+    public function getReturnTransitTimes(): bool
+    {
+        return $this->returnTransitTimes;
+    }
+
+    public function setServicesNeededOnRateFailure(bool $servicesNeededOnRateFailure=true): CreateRatesRequest
+    {
+        $this->servicesNeededOnRateFailure = $servicesNeededOnRateFailure;
+        return $this;
+    }
+
+    public function getServicesNeededOnRateFailure(): bool
+    {
+        return $this->servicesNeededOnRateFailure;
+    }
+
+    public function setVariableOptions(?string $variableOptions): CreateRatesRequest
+    {
+        $this->variableOptions = $variableOptions;
+        return $this;
+    }
+
+    public function getVariableOptions(): ?string
+    {
+        return $this->variableOptions;
+    }
+
+    public function setRateSortOrder(?string $rateSortOrder): CreateRatesRequest
+    {
+        $this->rateSortOrder = $rateSortOrder;
+        return $this;
+    }
+
+    public function getRateSortOrder(): ?string
+    {
+        return $this->rateSortOrder;
+    }
+
+    /**
+     * Set the list of Carrier Codes to request rates from.
+     *
+     * Documentation is not clear on what the default is when not specified, but as of
+     * 2024-05-30 the default appears to be ['FDXE', 'FDXG']. You must explicitly include
+     * 'FXSP' to obtain SmartPost rates
+     */
+    public function setCarrierCodes(array $carrierCodes): CreateRatesRequest
+    {
+        $this->carrierCodes = $carrierCodes;
+        return $this;
+    }
+
+    public function getCarrierCodes(): array
+    {
+        return $this->carrierCodes;
+    }
+
+    /**
+     * @return array
+     */
+    public function getControlParameters(): array
+    {
+        $data = [
+            'returnTransitTimes' => $this->returnTransitTimes,
+            'servicesNeededOnRateFailure' => $this->servicesNeededOnRateFailure,
+        ];
+
+        if ($this->variableOptions) {
+            $data['variableOptions'] = $this->variableOptions;
+        }
+
+        if ($this->rateSortOrder) {
+            $data['rateSortOrder'] = $this->rateSortOrder;
+        }
+
+        return $data;
+    }
+
+    public function getDocumentShipment(): bool
     {
         return $this->documentShipment;
     }
 
-    public function setDocumentShipment(bool $documentShipment): CreateRatesRequest
+    public function setDocumentShipment(bool $documentShipment = true): CreateRatesRequest
     {
         $this->documentShipment = $documentShipment;
         return $this;
@@ -315,7 +391,7 @@ class CreateRatesRequest extends AbstractRequest
         $this->customsClearanceDetail = $customsClearanceDetail;
         return $this;
     }
-    
+
     /**
      * @return array
      */
@@ -366,7 +442,7 @@ class CreateRatesRequest extends AbstractRequest
         if (!empty($this->totalPackageCount)) {
             $data['totalPackageCount'] = $this->totalPackageCount;
         }
-        
+
         if (!empty($this->customsClearanceDetail)) {
             $data['customsClearanceDetail'] = $this->customsClearanceDetail->prepare();
         }
@@ -380,10 +456,9 @@ class CreateRatesRequest extends AbstractRequest
             'accountNumber' => [
                 'value' => $this->accountNumber,
             ],
+            'rateRequestControlParameters' => $this->getControlParameters(),
             'requestedShipment' => $this->getRequestedShipment(),
-            'rateRequestControlParameters' => [
-                'returnTransitTimes' => $this->returnTransitTimes
-            ]
+            'carrierCodes' => $this->getCarrierCodes(),
         ];
     }
 
@@ -404,8 +479,9 @@ class CreateRatesRequest extends AbstractRequest
         }
 
         try {
+            $prepare = $this->prepare();
             $query = $this->http_client->post($this->getApiUri($this->api_endpoint), [
-                'json' => $this->prepare(),
+                'json' => $prepare,
                 'http_errors' => false,
             ]);
             return ($this->raw === true) ? $query : json_decode($query->getBody()->getContents());

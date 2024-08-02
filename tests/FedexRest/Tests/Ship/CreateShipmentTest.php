@@ -2,14 +2,15 @@
 
 namespace FedexRest\Tests\Ship;
 
-use Carbon\Carbon;
 use FedexRest\Authorization\Authorize;
 use FedexRest\Entity\Address;
 use FedexRest\Entity\Dimensions;
+use FedexRest\Entity\EmailNotificationRecipient;
 use FedexRest\Entity\Item;
 use FedexRest\Exceptions\MissingAccessTokenException;
 use FedexRest\Exceptions\MissingAuthCredentialsException;
 use FedexRest\Exceptions\MissingLineItemException;
+use FedexRest\Services\Ship\Entity\EmailNotificationDetail;
 use FedexRest\Services\Ship\Entity\Label;
 use FedexRest\Entity\Person;
 use FedexRest\Services\Ship\Entity\ShippingChargesPayment;
@@ -49,7 +50,7 @@ class CreateShipmentTest extends TestCase
         try {
 
             $request = (new CreateShipment)
-                ->setAccessToken((string) $this->auth->authorize()->access_token)
+                ->setAccessToken((string)$this->auth->authorize()->access_token)
                 ->request();
 
         } catch (MissingAccountNumberException $e) {
@@ -63,7 +64,7 @@ class CreateShipmentTest extends TestCase
         $request = NULL;
         try {
             $request = (new CreateShipment())
-                ->setAccessToken((string) $this->auth->authorize()->access_token)
+                ->setAccessToken((string)$this->auth->authorize()->access_token)
                 ->setAccountNumber(740561073)
                 ->setServiceType(ServiceType::_FEDEX_GROUND)
                 ->setPackagingType(PackagingType::_YOUR_PACKAGING)
@@ -71,7 +72,70 @@ class CreateShipmentTest extends TestCase
                 ->setShippingChargesPayment((new ShippingChargesPayment())
                     ->setPaymentType('SENDER')
                 )
-                ->setShipDatestamp(Carbon::now()->addDays(3)->format('Y-m-d'))
+                ->setShipDatestamp((new \DateTime())->add(new \DateInterval('P3D'))->format('Y-m-d'))
+                ->setLabel((new Label())
+                    ->setLabelStockType(LabelStockType::_STOCK_4X6)
+                    ->setImageType(ImageType::_PDF)
+                )
+                ->setShipper(
+                    (new Person)
+                        ->setPersonName('SHIPPER NAME')
+                        ->setPhoneNumber('1234567890')
+                        ->withAddress(
+                            (new Address())
+                                ->setCity('Collierville')
+                                ->setStreetLines('RECIPIENT STREET LINE 1')
+                                ->setStateOrProvince('TN')
+                                ->setCountryCode('US')
+                                ->setPostalCode('38017')
+                        )
+                )
+                ->setRecipients(
+                    (new Person)
+                        ->setPersonName('RECEIPIENT NAME')
+                        ->setPhoneNumber('1234567890')
+                        ->withAddress(
+                            (new Address())
+                                ->setCity('Irving')
+                                ->setStreetLines('RECIPIENT STREET LINE 1')
+                                ->setStateOrProvince('TX')
+                                ->setCountryCode('US')
+                                ->setPostalCode('75063')
+                        )
+                )
+                ->setLineItems((new Item())
+                    ->setItemDescription('lorem Ipsum')
+                    ->setWeight(
+                        (new Weight())
+                            ->setValue(1)
+                            ->setUnit(WeightUnits::_POUND)
+                    )
+                    ->setDimensions((new Dimensions())
+                        ->setWidth(12)
+                        ->setLength(12)
+                        ->setHeight(12)
+                        ->setUnits(LinearUnits::_INCH)
+                    )
+                )
+                ->request();
+        } catch (MissingLabelResponseOptionsException $e) {
+            $this->assertEquals('Label Response Options are required', $e->getMessage());
+        }
+        $this->assertEmpty($request, 'The request did not fail as it should.');
+    }
+
+    public function testShippingChargesPayment()
+    {
+        $request = NULL;
+        try {
+            $request = (new CreateShipment())
+                ->setAccessToken((string)$this->auth->authorize()->access_token)
+                ->setAccountNumber(740561073)
+                ->setServiceType(ServiceType::_FEDEX_GROUND)
+                ->setPackagingType(PackagingType::_YOUR_PACKAGING)
+                ->setPickupType(PickupType::_DROPOFF_AT_FEDEX_LOCATION)
+                ->setLabelResponseOptions(LabelResponseOptionsType::_URL_ONLY)
+                ->setShipDatestamp((new \DateTime())->add(new \DateInterval('P3D'))->format('Y-m-d'))
                 ->setLabel((new Label())
                     ->setLabelStockType(LabelStockType::_STOCK_4X6)
                     ->setImageType(ImageType::_PDF)
@@ -116,68 +180,6 @@ class CreateShipmentTest extends TestCase
                         ->setUnits(LinearUnits::_INCH)
                     )
                 )->request();
-        } catch (MissingLabelResponseOptionsException $e) {
-            $this->assertEquals('Label Response Options are required', $e->getMessage());
-        }
-        $this->assertEmpty($request, 'The request did not fail as it should.');
-    }
-
-    public function testShippingChargesPayment()
-    {
-        $request = NULL;
-        try {
-            $request = (new CreateShipment())
-                ->setAccessToken((string) $this->auth->authorize()->access_token)
-                ->setAccountNumber(740561073)
-                ->setServiceType(ServiceType::_FEDEX_GROUND)
-                ->setPackagingType(PackagingType::_YOUR_PACKAGING)
-                ->setPickupType(PickupType::_DROPOFF_AT_FEDEX_LOCATION)
-                ->setLabelResponseOptions(LabelResponseOptionsType::_URL_ONLY)
-                ->setShipDatestamp(Carbon::now()->addDays(3)->format('Y-m-d'))
-                ->setLabel((new Label())
-                    ->setLabelStockType(LabelStockType::_STOCK_4X6)
-                    ->setImageType(ImageType::_PDF)
-                )
-                ->setShipper(
-                    (new Person)
-                        ->setPersonName('SHIPPER NAME')
-                        ->setPhoneNumber('1234567890')
-                        ->withAddress(
-                            (new Address())
-                                ->setCity('Collierville')
-                                ->setStreetLines('RECIPIENT STREET LINE 1')
-                                ->setStateOrProvince('TN')
-                                ->setCountryCode('US')
-                                ->setPostalCode('38017')
-                        )
-                )
-                ->setRecipients(
-                    (new Person)
-                        ->setPersonName('RECEIPIENT NAME')
-                        ->setPhoneNumber('1234567890')
-                        ->withAddress(
-                            (new Address())
-                                ->setCity('Irving')
-                                ->setStreetLines('RECIPIENT STREET LINE 1')
-                                ->setStateOrProvince('TX')
-                                ->setCountryCode('US')
-                                ->setPostalCode('75063')
-                        )
-                )
-                ->setLineItems((new Item())
-                    ->setItemDescription('lorem Ipsum')
-                    ->setWeight(
-                        (new Weight())
-                            ->setValue(1)
-                            ->setUnit(WeightUnits::_POUND)
-                    )
-                    ->setDimensions((new Dimensions())
-                        ->setWidth(12)
-                        ->setLength(12.25)
-                        ->setHeight(12)
-                        ->setUnits(LinearUnits::_INCH)
-                    )
-                )->request();
         } catch (MissingShippingChargesPaymentException $e) {
             $this->assertEquals('Shipping charges payment is required', $e->getMessage());
         }
@@ -189,7 +191,7 @@ class CreateShipmentTest extends TestCase
         $request = NULL;
         try {
             $request = (new CreateShipment)
-                ->setAccessToken((string) $this->auth->authorize()->access_token)
+                ->setAccessToken((string)$this->auth->authorize()->access_token)
                 ->setAccountNumber(740561073)
                 ->setServiceType(ServiceType::_FEDEX_GROUND)
                 ->setLabelResponseOptions(LabelResponseOptionsType::_URL_ONLY)
@@ -224,8 +226,8 @@ class CreateShipmentTest extends TestCase
                             ->setUnit(WeightUnits::_POUND)
                     )
                     ->setDimensions((new Dimensions())
-                        ->setWidth(12.5)
-                        ->setLength(12.5)
+                        ->setWidth(12)
+                        ->setLength(12)
                         ->setHeight(12)
                         ->setUnits(LinearUnits::_INCH)
                     ))->request();
@@ -238,7 +240,7 @@ class CreateShipmentTest extends TestCase
     public function testRequiredData()
     {
         $shipment = (new CreateShipment())
-            ->setAccessToken((string) $this->auth->authorize()->access_token)
+            ->setAccessToken((string)$this->auth->authorize()->access_token)
             ->setAccountNumber(740561073)
             ->setServiceType(ServiceType::_FEDEX_GROUND)
             ->setLabelResponseOptions(LabelResponseOptionsType::_URL_ONLY)
@@ -272,7 +274,7 @@ class CreateShipmentTest extends TestCase
     public function testPrepare()
     {
         $request = (new CreateShipment)
-            ->setAccessToken((string) $this->auth->authorize()->access_token)
+            ->setAccessToken((string)$this->auth->authorize()->access_token)
             ->setAccountNumber(740561073)
             ->setServiceType(ServiceType::_FEDEX_GROUND)
             ->setLabelResponseOptions(LabelResponseOptionsType::_URL_ONLY)
@@ -311,20 +313,39 @@ class CreateShipmentTest extends TestCase
                         ->setUnit(WeightUnits::_POUND)
                 )
                 ->setDimensions((new Dimensions())
-                    ->setWidth(12.5)
-                    ->setLength(12.5)
-                    ->setHeight(12.5)
+                    ->setWidth(12)
+                    ->setLength(12)
+                    ->setHeight(12)
                     ->setUnits(LinearUnits::_INCH)
-                ));
+                ))
+            ->setEmailNotificationDetail((new EmailNotificationDetail)
+                ->setPersonalMessage('hello world')
+                ->setAggregationType('PER_PACKAGE')
+                ->setEmailNotificationRecipients([
+                        (new EmailNotificationRecipient())
+                            ->setName('John Doe')
+                            ->setEmailAddress('john@doe.com')
+                            ->setNotificationEventType('ON_DELIVERY', 'ON_PICKUP_DRIVER_EN_ROUTE')
+                            ->setEmailNotificationRecipientType('SHIPPER')
+                    ]
+                )
+            );
+
         $prepared = $request->prepare();
+
         $requested_shipment = $prepared['requestedShipment'];
         $this->assertEquals('Boston', $requested_shipment['recipients'][0]['address']['city']);
         $this->assertCount(1, $requested_shipment['recipients']);
         $this->assertNotEmpty($requested_shipment['shipper']['contact']['personName']);
         $this->assertEquals(LabelResponseOptionsType::_URL_ONLY, $prepared['labelResponseOptions']);
         $this->assertEquals(LabelDocOptionType::_LABELS_AND_DOCS, $prepared['mergeLabelDocOption']);
-        $this->assertEquals(FALSE, $prepared['oneLabelAtATime']);
+        $this->assertFalse($prepared['oneLabelAtATime']);
         $this->assertEquals('FEDEX_GROUND', $requested_shipment['serviceType']);
+
+        $emailNotificationDetail = $requested_shipment['emailNotificationDetail'];
+        $this->assertEquals('PER_PACKAGE', $emailNotificationDetail['aggregationType']);
+        $this->assertEquals('john@doe.com', $emailNotificationDetail['emailNotificationRecipients'][0]['emailAddress']);
+        $this->assertEquals('SHIPPER', $emailNotificationDetail['emailNotificationRecipients'][0]['emailNotificationRecipientType']);
     }
 
     /**
@@ -340,7 +361,7 @@ class CreateShipmentTest extends TestCase
     public function testRequest()
     {
         $shipment = (new CreateShipment())
-            ->setAccessToken((string) $this->auth->authorize()->access_token)
+            ->setAccessToken((string)$this->auth->authorize()->access_token)
             ->setAccountNumber(740561073)
             ->setServiceType(ServiceType::_FEDEX_GROUND)
             ->setLabelResponseOptions(LabelResponseOptionsType::_URL_ONLY)
@@ -349,7 +370,7 @@ class CreateShipmentTest extends TestCase
             ->setShippingChargesPayment((new ShippingChargesPayment())
                 ->setPaymentType('SENDER')
             )
-            ->setShipDatestamp(Carbon::now()->addDays(3)->format('Y-m-d'))
+            ->setShipDatestamp((new \DateTime())->add(new \DateInterval('P3D'))->format('Y-m-d'))
             ->setLabel((new Label())
                 ->setLabelStockType(LabelStockType::_STOCK_4X6)
                 ->setImageType(ImageType::_PDF)
@@ -393,8 +414,22 @@ class CreateShipmentTest extends TestCase
                     ->setHeight(12)
                     ->setUnits(LinearUnits::_INCH)
                 )
+            )
+            ->setEmailNotificationDetail((new EmailNotificationDetail)
+                ->setPersonalMessage('hello world')
+                ->setAggregationType('PER_PACKAGE')
+                ->setEmailNotificationRecipients([
+                        (new EmailNotificationRecipient())
+                            ->setName('John Doe')
+                            ->setEmailAddress('john@doe.com')
+                            ->setNotificationEventType('ON_DELIVERY', 'ON_PICKUP_DRIVER_EN_ROUTE')
+                            ->setEmailNotificationRecipientType('SHIPPER')
+                    ]
+                )
             );
+
         $request = $shipment->request();
+
         $this->assertObjectHasProperty('transactionId', $request);
         $this->assertObjectNotHasProperty('errors', $request);
         $this->assertObjectHasProperty('output', $request);
@@ -405,7 +440,7 @@ class CreateShipmentTest extends TestCase
         $this->assertEquals('FEDEX_GROUND', $new_shipment->serviceType);
         $this->assertNotEmpty($new_shipment->pieceResponses);
         $this->assertNotEmpty($new_shipment->completedShipmentDetail);
-        $this->assertEquals('EXPRESS', $new_shipment->serviceCategory);
+        $this->assertEquals('GROUND', $new_shipment->serviceCategory);
     }
 
 }
