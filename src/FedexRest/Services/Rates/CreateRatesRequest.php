@@ -9,6 +9,7 @@ use FedexRest\Exceptions\MissingAccessTokenException;
 use FedexRest\Exceptions\MissingAccountNumberException;
 use FedexRest\Exceptions\MissingLineItemException;
 use FedexRest\Services\AbstractRequest;
+use FedexRest\Services\Ship\Entity\CustomsClearanceDetail;
 use FedexRest\Services\Ship\Entity\Label;
 use FedexRest\Services\Ship\Entity\ShipmentSpecialServices;
 use FedexRest\Services\Ship\Entity\ShippingChargesPayment;
@@ -36,6 +37,8 @@ class CreateRatesRequest extends AbstractRequest
     protected ?string $variableOptions = null;
     protected ?string $rateSortOrder = null;
     protected array $carrierCodes = [];
+    protected bool $documentShipment = false;
+    protected ?CustomsClearanceDetail $customsClearanceDetail = null;
 
     /**
      * {@inheritDoc}
@@ -367,6 +370,28 @@ class CreateRatesRequest extends AbstractRequest
         return $data;
     }
 
+    public function getDocumentShipment(): bool
+    {
+        return $this->documentShipment;
+    }
+
+    public function setDocumentShipment(bool $documentShipment = true): CreateRatesRequest
+    {
+        $this->documentShipment = $documentShipment;
+        return $this;
+    }
+
+    public function getCustomsClearanceDetail(): CustomsClearanceDetail
+    {
+        return $this->customsClearanceDetail;
+    }
+
+    public function setCustomsClearanceDetail(CustomsClearanceDetail $customsClearanceDetail): CreateRatesRequest
+    {
+        $this->customsClearanceDetail = $customsClearanceDetail;
+        return $this;
+    }
+
     /**
      * @return array
      */
@@ -383,6 +408,7 @@ class CreateRatesRequest extends AbstractRequest
             'recipient' => $this->recipient->prepare(),
             'pickupType' => $this->pickupType,
             'requestedPackageLineItems' => $line_items,
+            'documentShipment' => $this->documentShipment,
         ];
 
         if (!empty($this->shipmentSpecialServices)) {
@@ -415,6 +441,10 @@ class CreateRatesRequest extends AbstractRequest
 
         if (!empty($this->totalPackageCount)) {
             $data['totalPackageCount'] = $this->totalPackageCount;
+        }
+
+        if (!empty($this->customsClearanceDetail)) {
+            $data['customsClearanceDetail'] = $this->customsClearanceDetail->prepare();
         }
 
         return $data;
