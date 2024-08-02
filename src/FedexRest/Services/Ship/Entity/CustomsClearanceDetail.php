@@ -27,6 +27,24 @@ class CustomsClearanceDetail
         return $this;
     }
 
+    /**
+     * @return DutiesPayment|null
+     */
+    public function getDutiesPayment(): ?DutiesPayment
+    {
+        return $this->dutiesPayment;
+    }
+
+    /**
+     * @param DutiesPayment|null $dutiesPayment
+     * @return CustomsClearanceDetail
+     */
+    public function setDutiesPayment(?DutiesPayment $dutiesPayment): CustomsClearanceDetail
+    {
+        $this->dutiesPayment = $dutiesPayment;
+        return $this;
+    }
+
     public function prepare(): array
     {
         $data = [];
