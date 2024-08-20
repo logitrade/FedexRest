@@ -1,6 +1,6 @@
 {
   "version": "0.5.16",
-  "name": "whatarmy/fedex-rest",
+  "name": "logitrade/fedex-rest",
   "description": "New FedEx Rest API wrapper",
   "keywords": [
     "shipping",
